@@ -13,15 +13,16 @@ impl Dom {
         &mut self,
         name: impl Into<String>,
     ) -> NodeId {
-        /*
-         * Element-specific metadata will eventually
-         * be stored alongside the Node itself.
-         */
-        let _name = name.into();
+        let id =
+            NodeId(self.nodes.len());
 
-        self.create_node(
-            NodeType::Element
-        )
+        self.nodes.push(
+            super::node::Node::new_element(
+                name
+            )
+        );
+
+        id
     }
 
     pub fn create_text_node(
@@ -55,7 +56,8 @@ impl Dom {
             .iter()
             .copied()
             .find(|node| {
-                self.nodes[node.0].node_type
+                self.nodes[node.0]
+                    .node_type
                     == NodeType::Element
             })
     }
