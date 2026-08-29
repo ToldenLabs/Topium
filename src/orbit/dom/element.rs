@@ -1,39 +1,77 @@
-use super::attribute::AttributeMap;
-use super::node::NodeId;
+use super::attribute::Attribute;
+use super::node::{
+    Node,
+    NodeId,
+    NodeType,
+};
+use super::tree::Dom;
 
-#[derive(Debug)]
-pub struct ElementData {
-    pub local_name: String,
-    pub namespace: String,
-    pub attributes: AttributeMap,
-    pub node_id: NodeId,
-}
+impl Dom {
+    pub fn element(
+        &self,
+        node: NodeId,
+    ) -> Option<&Node> {
+        let node_ref =
+            &self.nodes[node.0];
 
-impl ElementData {
-    pub fn new(
-        node_id: NodeId,
-        local_name: impl Into<String>,
-    ) -> Self {
-        Self {
-            node_id,
-            local_name: local_name.into(),
-            namespace:
-                "http://www.w3.org/1999/xhtml"
-                    .to_string(),
-            attributes:
-                AttributeMap::new(),
+        if node_ref.node_type
+            != NodeType::Element
+        {
+            return None;
         }
+
+        Some(node_ref)
     }
 
-    pub fn tag_name(&self) -> &str {
-        &self.local_name
+    pub fn element_mut(
+        &mut self,
+        node: NodeId,
+    ) -> Option<&mut Node> {
+        let node_ref =
+            &mut self.nodes[node.0];
+
+        if node_ref.node_type
+            != NodeType::Element
+        {
+            return None;
+        }
+
+        Some(node_ref)
+    }
+
+    pub fn local_name(
+        &self,
+        node: NodeId,
+    ) -> Option<&str> {
+        self.element(node)?
+            .element
+            .as_ref()?
+            .local_name
+            .as_str()
+            .into()
+    }
+
+    pub fn namespace(
+        &self,
+        node: NodeId,
+    ) -> Option<&str> {
+        self.element(node)?
+            .element
+            .as_ref()?
+            .namespace
+            .as_str()
+            .into()
     }
 
     pub fn get_attribute(
         &self,
+        node: NodeId,
         name: &str,
     ) -> Option<&str> {
-        self.attributes
+        self.element(node)?
+            .element
+            .as_ref()?
+            .attributes
             .get(name)
             .map(|attribute| {
                 attribute.value.as_str()
@@ -42,26 +80,50 @@ impl ElementData {
 
     pub fn has_attribute(
         &self,
+        node: NodeId,
         name: &str,
     ) -> bool {
-        self.attributes.contains(name)
+        self.get_attribute(
+            node,
+            name,
+        )
+        .is_some()
     }
 
     pub fn set_attribute(
         &mut self,
+        node: NodeId,
         name: impl Into<String>,
         value: impl Into<String>,
     ) {
-        self.attributes.set(
-            name,
-            value,
-        );
+        let Some(element) =
+            self.element_mut(node)
+        else {
+            return;
+        };
+
+        if let Some(data) =
+            element.element.as_mut()
+        {
+            data.attributes.set(
+                name,
+                value,
+            );
+        }
     }
 
     pub fn remove_attribute(
         &mut self,
+        node: NodeId,
         name: &str,
-    ) {
-        self.attributes.remove(name);
+    ) -> Option<Attribute> {
+        let element =
+            self.element_mut(node)?;
+
+        element
+            .element
+            .as_mut()?
+            .attributes
+            .remove(name)
     }
 }
